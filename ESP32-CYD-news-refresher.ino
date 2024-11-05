@@ -2,28 +2,29 @@
 #include <ESPAsyncWebServer.h>
 #include <TFT_eSPI.h>
 #include <HTTPClient.h>
-#include "WiFiConfig.h"
+#include <SD.h> // Biblioteka do obsługi karty SD
 
 // Konfiguracja wyświetlacza
 TFT_eSPI tft = TFT_eSPI();
+#include "WiFiConfig.h"
 
 
-// Lista URL stron do wyświetlenia (wprowadzana przez użytkownika)
-String urlList[5] = {"http://example1.com", "http://example2.com", "http://example3.com"};
-int urlCount = 3; // Liczba URL-i w urlList
+// Lista URL stron
+String urlList[5];
+int urlCount = 0;
 
-// Ustawienia dla wyświetlania stron
+// Ustawienia wyświetlania stron
 unsigned long displayInterval = 60000; // 1 minuta na stronę
 unsigned long lastDisplayTime = 0;
 int currentUrlIndex = 0;
 
-// Serwer do konfiguracji przez przeglądarkę (np. http://192.168.x.x)
+// Serwer do konfiguracji przez przeglądarkę
 AsyncWebServer server(80);
 
 void setup() {
   // Uruchomienie wyświetlacza TFT
   tft.init();
-  tft.setRotation(1); // Ustawienie orientacji ekranu
+  tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
 
   // Inicjalizacja Wi-Fi
@@ -40,15 +41,24 @@ void setup() {
   tft.drawString("Polaczono z Wi-Fi", tft.width() / 2, tft.height() / 2);
   delay(1000);
 
-  // Konfiguracja interfejsu konfiguracyjnego (adres IP modułu)
+  // Inicjalizacja karty SD
+  if (!SD.begin()) {
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_RED);
+    tft.println("Blad inicjalizacji karty SD!");
+    while (true); // Zatrzymanie programu, jeśli nie ma karty SD
+  }
+
+  // Wczytanie listy URL z karty SD
+  loadUrlsFromSD();
+
+  // Konfiguracja serwera HTTP do zmiany konfiguracji
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    String html = "<html><body><h2>Konfiguracja Wi-Fi i URL-i</h2>";
+    String html = "<html><body><h2>Konfiguracja URL-i</h2>";
     html += "<form action=\"/save\" method=\"POST\">";
-    html += "SSID Wi-Fi: <input type=\"text\" name=\"ssid\"><br>";
-    html += "Haslo Wi-Fi: <input type=\"password\" name=\"password\"><br><br>";
     html += "Adresy URL:<br>";
     for (int i = 0; i < 5; i++) {
-      html += "URL " + String(i+1) + ": <input type=\"text\" name=\"url" + String(i) + "\"><br>";
+      html += "URL " + String(i+1) + ": <input type=\"text\" name=\"url" + String(i) + "\" value=\"" + urlList[i] + "\"><br>";
     }
     html += "<br><input type=\"submit\" value=\"Zapisz\">";
     html += "</form></body></html>";
@@ -56,10 +66,7 @@ void setup() {
   });
   
   server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request){
-    // Odczytanie parametrów konfiguracyjnych
-    if (request->hasParam("ssid", true)) ssid = request->getParam("ssid", true)->value();
-    if (request->hasParam("password", true)) password = request->getParam("password", true)->value();
-
+    // Aktualizacja URL-i z formularza
     for (int i = 0; i < 5; i++) {
       String paramName = "url" + String(i);
       if (request->hasParam(paramName, true)) {
@@ -67,8 +74,11 @@ void setup() {
       }
     }
     urlCount = 5;
+    
+    // Zapisanie URL-i na kartę SD
+    saveUrlsToSD();
 
-    // Restart urządzenia, aby zapisać nowe ustawienia
+    // Restart urządzenia
     request->send(200, "text/html", "<html><body><h2>Ustawienia zapisane. Restart...</h2></body></html>");
     delay(2000);
     ESP.restart();
@@ -101,7 +111,6 @@ void displayWebPage(String url) {
     tft.setCursor(0, 0);
     tft.println("Strona: " + url);
     tft.println("Kod odpowiedzi: " + String(httpCode));
-    
     tft.println("Zawartosc strony:");
     tft.println(payload.substring(0, 500)); // Wyświetl część strony (500 znaków)
   } else {
@@ -112,4 +121,31 @@ void displayWebPage(String url) {
   }
   
   http.end();
+}
+
+void loadUrlsFromSD() {
+  File file = SD.open("/urls.txt");
+  if (file) {
+    int i = 0;
+    while (file.available() && i < 5) {
+      urlList[i] = file.readStringUntil('\n');
+      urlList[i].trim(); // Usunięcie zbędnych spacji
+      i++;
+    }
+    urlCount = i;
+    file.close();
+  } else {
+    tft.setTextColor(TFT_RED);
+    tft.println("Brak pliku z URL-ami na SD");
+  }
+}
+
+void saveUrlsToSD() {
+  File file = SD.open("/urls.txt", FILE_WRITE);
+  if (file) {
+    for (int i = 0; i < urlCount; i++) {
+      file.println(urlList[i]);
+    }
+    file.close();
+  }
 }
