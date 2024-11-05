@@ -2,13 +2,11 @@
 #include <ESPAsyncWebServer.h>
 #include <TFT_eSPI.h>
 #include <HTTPClient.h>
+#include "WiFiConfig.h"
 
 // Konfiguracja wyświetlacza
 TFT_eSPI tft = TFT_eSPI();
 
-// Dane Wi-Fi (do wypełnienia przez użytkownika w interfejsie)
-String ssid = "TwojeSSID";
-String password = "TwojeHaslo";
 
 // Lista URL stron do wyświetlenia (wprowadzana przez użytkownika)
 String urlList[5] = {"http://example1.com", "http://example2.com", "http://example3.com"};
