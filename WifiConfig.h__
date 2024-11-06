@@ -1,0 +1,13 @@
+// WiFiConfig.h
+
+#ifndef WIFICONFIG_H
+#define WIFICONFIG_H
+
+// Dane logowania do Wi-Fi
+const char* ssid = "Twoja_Nazwa_Sieci";
+const char* password = "Twoje_Haslo_Sieci";
+
+// Adres MAC autoryzowanego punktu dostępowego
+const uint8_t apMAC[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};  // Zamień na rzeczywisty adres MAC swojego routera
+
+#endif // WIFICONFIG_H
