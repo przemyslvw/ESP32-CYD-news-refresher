@@ -9,6 +9,10 @@ const char* url = "http://example.com";
 // Inicjalizacja wyświetlacza TFT
 TFT_eSPI tft = TFT_eSPI();
 
+// Czas ostatniego odświeżenia (w milisekundach)
+unsigned long lastRefreshTime = 0;
+const unsigned long refreshInterval = 60000;  // Odświeżenie co minutę
+
 void setup() {
   Serial.begin(115200);
 
@@ -54,7 +58,10 @@ void setup() {
 }
 
 void loop() {
-  if (WiFi.status() == WL_CONNECTED) {
+  // Sprawdź, czy upłynął czas odświeżenia (1 minuta)
+  if (WiFi.status() == WL_CONNECTED && millis() - lastRefreshTime >= refreshInterval) {
+    lastRefreshTime = millis();  // Zapisz czas odświeżenia
+
     HTTPClient http;
     http.begin(url);
 
@@ -75,9 +82,5 @@ void loop() {
       tft.println("Blad ladowania strony");
     }
     http.end();
-  } else {
-    Serial.println("Brak polaczenia z WiFi");
-    tft.println("Brak polaczenia z WiFi");
   }
-  delay(60000);
 }
