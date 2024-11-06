@@ -1,13 +1,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <TFT_eSPI.h>  // Biblioteka obsługi wyświetlacza TFT (dla kompatybilności z ILI9341)
-
-// Ustawienia Wi-Fi
-const char* ssid = "Twoja_Nazwa_Sieci";
-const char* password = "Twoje_Haslo_Sieci";
-
-// Właściwy adres MAC punktu dostępowego
-const uint8_t apMAC[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};  // Zmień na adres MAC swojego routera
+#include <TFT_eSPI.h>   // Biblioteka wyświetlacza TFT
+#include "WiFiConfig.h" // Plik konfiguracyjny Wi-Fi
 
 // URL strony do wyświetlenia
 const char* url = "http://example.com";
@@ -37,7 +31,7 @@ void setup() {
 
   // Sprawdzenie adresu MAC punktu dostępowego po połączeniu
   uint8_t bssid[6];
-  WiFi.BSSID(bssid);  // Pobiera MAC adres aktualnego punktu dostępowego
+  WiFi.BSSID(bssid);  // Pobiera MAC adres punktu dostępowego
 
   bool authorizedAP = true;
   for (int i = 0; i < 6; i++) {
